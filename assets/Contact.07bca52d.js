@@ -1,1 +1,0 @@
-import{_ as t}from"./LegalLayout.vue_vue_type_script_setup_true_lang.455681d3.js";import{d as a,G as e,w as o,o as s,f as c}from"./index.e66dfead.js";import"./mdi.d5b2c6be.js";const n=c("h1",{class:"text-h6"},"Contact: localsendapp@gmail.com",-1),f=a({__name:"Contact",setup(_){return(r,m)=>(s(),e(t,null,{default:o(()=>[n]),_:1}))}});export{f as default};
