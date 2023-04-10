@@ -73,11 +73,11 @@
 </template>
 
 <script setup lang="ts">
-import { inject, ref } from 'vue';
+import {onMounted, Ref, ref} from 'vue';
 import { mdiDownload, mdiHistory } from '@mdi/js'
 import PageLayout from "@/layouts/PageLayout.vue";
 import {useI18n} from "vue-i18n";
-import {Assets} from "@/plugins/githubfetcher";
+import {requestGithubAssets} from "@/helper/requestGithubAssets";
 
 const { t } = useI18n()
 
@@ -126,105 +126,127 @@ const nix = {
   ],
 };
 
-const assetsMetadata: Array<Assets> | undefined = inject('assets');
-// Generates a map using file extensions as key
-const assetsMap = new Map(assetsMetadata?.map(obj => [ obj.name.split(".").pop(), obj.browser_download_url ]))
+const assetsMap: Ref<{[key: string]: string}> = ref({});
 const fallbackUrl = "https://github.com/localsend/localsend/releases";
 
-const downloadMetadata: Record<OS, Download> = {
-  [OS.windows]: {
-    stores: [],
-    binaries: [
-      {
-        name: 'MSIX',
-        url: assetsMap.get("msix") ?? fallbackUrl,
-      },
-      {
-        name: t('download.zip'),
-        url: assetsMap.get("zip") ?? fallbackUrl,
-      },
-    ],
-    packageManagers: [
-      {
-        name: 'Winget',
-        commands: ['winget install localsend'],
-      },
-      {
-        name: 'Scoop',
-        commands: ['scoop install localsend'],
-      },
-    ],
-  },
-  [OS.macos]: {
-    stores: [appleStore],
-    binaries: [
-      {
-        name: 'DMG',
-        url: assetsMap.get("dmg") ?? fallbackUrl,
-      },
-    ],
-    packageManagers: [
-      {
-        name: 'Homebrew',
-        commands: [
-          'brew tap localsend/localsend',
-          'brew install localsend',
-        ],
-      },
-      nix,
-    ],
-  },
-  [OS.linux]: {
-    stores: [],
-    binaries: [
-      {
-        name: 'AppImage',
-        url: assetsMap.get("AppImage") ?? fallbackUrl,
-      }
-    ],
-    packageManagers: [
-      {
-        name: 'Flathub',
-        commands: [
-          'flatpak install flathub org.localsend.localsend_app',
-          'flatpak run org.localsend.localsend_app',
-        ],
-      },
-      {
-        name: 'AUR',
-        commands: ['yay -S localsend-bin'],
-      },
-      nix,
-    ]
-  },
-  [OS.android]: {
-    stores: [
-      `<a href='https://play.google.com/store/apps/details?id=org.localsend.localsend_app&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'>
+const downloadMetadata: Ref<Record<OS, Download>> = ref(() => {
+  return <Record<OS, Download>>{
+    [OS.windows]: {
+      stores: [],
+      binaries: [
+        {
+          name: 'MSIX',
+          url: assetsMap.value['msix'] ?? fallbackUrl,
+        },
+        {
+          name: t('download.zip'),
+          url: assetsMap.value['zip'] ?? fallbackUrl,
+        },
+      ],
+      packageManagers: [
+        {
+          name: 'Winget',
+          commands: ['winget install localsend'],
+        },
+        {
+          name: 'Scoop',
+          commands: ['scoop install localsend'],
+        },
+      ],
+    },
+    [OS.macos]: {
+      stores: [appleStore],
+      binaries: [
+        {
+          name: 'DMG',
+          url: assetsMap.value['dmg'] ?? fallbackUrl,
+        },
+      ],
+      packageManagers: [
+        {
+          name: 'Homebrew',
+          commands: [
+            'brew tap localsend/localsend',
+            'brew install localsend',
+          ],
+        },
+        nix,
+      ],
+    },
+    [OS.linux]: {
+      stores: [],
+      binaries: [
+        {
+          name: 'AppImage',
+          url: assetsMap.value['AppImage'] ?? fallbackUrl,
+        }
+      ],
+      packageManagers: [
+        {
+          name: 'Flathub',
+          commands: [
+            'flatpak install flathub org.localsend.localsend_app',
+            'flatpak run org.localsend.localsend_app',
+          ],
+        },
+        {
+          name: 'AUR',
+          commands: ['yay -S localsend-bin'],
+        },
+        nix,
+      ]
+    },
+    [OS.android]: {
+      stores: [
+        `<a href='https://play.google.com/store/apps/details?id=org.localsend.localsend_app&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'>
           <img alt='Get it on Google Play'
                src='https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png'
                height="90"
           />
         </a>`,
-      `<a href="https://f-droid.org/packages/org.localsend.localsend_app">
+        `<a href="https://f-droid.org/packages/org.localsend.localsend_app">
           <img alt="Get it on F-Droid" src="${new URL('@/assets/badges/f-droid-badge.png', import.meta.url).href}" height="90">
         </a>`,
-      `<a href="https://www.amazon.com/dp/B0BW6MP732" class="d-block pl-4 pr-4 pt-4">
+        `<a href="https://www.amazon.com/dp/B0BW6MP732" class="d-block pl-4 pr-4 pt-4">
           <img alt="Get it on F-Droid" src="${new URL('@/assets/badges/amazon-store-badge.png', import.meta.url).href}" height="60">
         </a>`,
-    ],
-    binaries: [
-      {
-        name: 'APK',
-        url: assetsMap.get("apk") ?? fallbackUrl,
-      }
-    ],
-    packageManagers: [],
-  },
-  [OS.ios]: {
-    stores: [appleStore],
-    binaries: [],
-    packageManagers: [],
-  }
-};
+      ],
+      binaries: [
+        {
+          name: 'APK',
+          url: assetsMap.value['apk'] ?? fallbackUrl,
+        }
+      ],
+      packageManagers: [],
+    },
+    [OS.ios]: {
+      stores: [appleStore],
+      binaries: [],
+      packageManagers: [],
+    }
+  };
+});
+
+onMounted(async () => {
+  const assetsMetadata = await requestGithubAssets();
+  console.log(assetsMetadata);
+  const temp = assetsMetadata.reduce<{ [key: string]: string }>((acc, obj) => {
+    const key = obj.name.split(".").pop();
+    if (key) {
+      acc[key] = obj.browser_download_url;
+    }
+    return acc;
+  }, {});
+
+  console.log(temp);
+
+  assetsMap.value = assetsMetadata.reduce<{ [key: string]: string }>((acc, obj) => {
+    const key = obj.name.split(".").pop();
+    if (key) {
+      acc[key] = obj.browser_download_url;
+    }
+    return acc;
+  }, {});
+});
 
 </script>
